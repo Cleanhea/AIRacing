@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 경마 게임 🏇</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ── 설정 화면 ── -->
+  <div id="setup-screen" class="screen active">
+    <div class="setup-box">
+      <h1 class="title">🏇 AI 경마 게임</h1>
+      <p class="subtitle">Gemini AI가 실시간 중계하는 100M 경마 레이스!</p>
+
+      <div class="panel">
+        <div class="panel-label">Gemini API 키 (AI 중계 기능)</div>
+        <input id="api-key" class="api-input" type="password" placeholder="AIza... (없으면 기본 중계)">
+        <div class="api-hint">API 키 없이도 게임은 가능합니다. AI 중계를 원하면 Google AI Studio에서 발급하세요.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">참가 말 수 선택</div>
+        <div class="count-buttons" id="count-buttons"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">참가 말 소개</div>
+        <div class="horse-cards" id="horse-cards"></div>
+      </div>
+
+      <button id="start-btn" class="start-btn">🚀 경기 시작!</button>
+    </div>
+  </div>
+
+  <!-- ── 레이스 화면 ── -->
+  <div id="race-screen" class="screen">
+    <div class="canvas-wrap">
+      <canvas id="race-canvas"></canvas>
+      <canvas id="overlay-canvas"></canvas>
+    </div>
+
+    <div class="sidebar">
+      <div class="round-header">
+        <h2>라운드 <span id="round-display">0 / 100</span></h2>
+      </div>
+
+      <div>
+        <div class="panel-label" style="margin-bottom:8px">순위</div>
+        <div id="scoreboard"></div>
+      </div>
+
+      <div class="commentary-box">
+        <h3>AI 중계 <span class="gemini-tag">Gemini</span></h3>
+        <div id="commentary">경기 시작을 기다리는 중...</div>
+      </div>
+
+      <div class="controls">
+        <button id="next-round-btn">다음 라운드 ▶</button>
+        <label class="auto-label">
+          <input type="checkbox" id="auto-check">
+          자동 진행
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 결과 화면 ── -->
+  <div id="result-screen" class="screen">
+    <div class="result-box">
+      <h1>🏆 경기 종료!</h1>
+      <div id="final-results"></div>
+      <button id="restart-btn">🔄 다시하기</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
