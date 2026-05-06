@@ -19,6 +19,17 @@ varying vec4 v_col;
 varying vec2 v_uv;
 void main() { gl_FragColor = v_col; }`;
 
+const TEX_FS = `
+precision mediump float;
+varying vec4 v_col;
+varying vec2 v_uv;
+uniform sampler2D u_tex;
+void main() {
+  vec4 tex = texture2D(u_tex, v_uv);
+  if (tex.a < 0.02) discard;
+  gl_FragColor = tex * v_col;
+}`;
+
 const ROUND_FS = `
 precision mediump float;
 varying vec4 v_col;
@@ -51,6 +62,7 @@ export class Renderer {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     this.flatProg = this._prog(FLAT_VS, FLAT_FS);
+    this.texProg = this._prog(FLAT_VS, TEX_FS);
     this.roundProg = this._prog(FLAT_VS, ROUND_FS);
 
     this.vbo = gl.createBuffer();
@@ -75,6 +87,7 @@ export class Renderer {
     this.mToPx = 1;
     this.particles = [];
     this.time = 0;
+    this.horseSprites = this._loadHorseSprites(8);
   }
 
   _prog(vs, fs) {
@@ -133,6 +146,52 @@ export class Renderer {
     this.roundN = this._addQ(this.roundV, this.roundN, x, y, w, h, r, g, b, a);
   }
 
+  _loadHorseSprites(count) {
+    const gl = this.gl;
+    const sprites = [];
+
+    for (let i = 1; i <= count; i++) {
+      const texture = gl.createTexture();
+      const sprite = {
+        texture,
+        ready: false,
+        width: 1,
+        height: 1,
+      };
+
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        1,
+        1,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        new Uint8Array([0, 0, 0, 0])
+      );
+
+      const img = new Image();
+      img.onload = () => {
+        sprite.ready = true;
+        sprite.width = img.naturalWidth || img.width || 1;
+        sprite.height = img.naturalHeight || img.height || 1;
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      };
+      img.src = `image/horse_${i}.png`;
+      sprites.push(sprite);
+    }
+
+    return sprites;
+  }
+
   _flush(prog, data, count) {
     if (count === 0) return;
     const gl = this.gl;
@@ -152,6 +211,34 @@ export class Renderer {
 
     gl.uniform2f(uloc('u_res'), W, H);
     gl.drawElements(gl.TRIANGLES, count * 6, gl.UNSIGNED_SHORT, 0);
+  }
+
+  _drawTexture(texture, x, y, w, h, alpha = 1) {
+    const gl = this.gl;
+    const W = this.glc.width, H = this.glc.height;
+    const data = new Float32Array(32);
+
+    this._addQ(data, 0, x, y, w, h, 1, 1, 1, alpha);
+
+    gl.useProgram(this.texProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
+
+    const stride = 32;
+    const loc = (name) => gl.getAttribLocation(this.texProg, name);
+    const uloc = (name) => gl.getUniformLocation(this.texProg, name);
+
+    const aPos = loc('a_pos'), aCol = loc('a_col'), aUv = loc('a_uv');
+    gl.enableVertexAttribArray(aPos); gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, stride, 0);
+    gl.enableVertexAttribArray(aCol); gl.vertexAttribPointer(aCol, 4, gl.FLOAT, false, stride, 8);
+    gl.enableVertexAttribArray(aUv);  gl.vertexAttribPointer(aUv,  2, gl.FLOAT, false, stride, 24);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(uloc('u_tex'), 0);
+    gl.uniform2f(uloc('u_res'), W, H);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
   }
 
   _drawBackground(W, H) {
@@ -220,44 +307,20 @@ export class Renderer {
   }
 
   _drawHorse(horse, laneY, laneH, time) {
-    const [r, g, b] = horse.type.glColor;
-    const bodyW = laneH * 1.9;
-    const bodyH = laneH * 0.45;
-    const headW = laneH * 0.35;
-    const headH = bodyH * 0.7;
-    const sx = this.worldX(horse.position) - bodyW * 0.7;
-    const sy = laneY + (laneH - bodyH) / 2;
+    const sprite = this.horseSprites[horse.laneIndex] || this.horseSprites[0];
+    const spriteH = laneH * 0.82;
+    const aspect = sprite ? sprite.width / sprite.height : 1.6;
+    const spriteW = spriteH * aspect;
+    const sx = this.worldX(horse.position) - spriteW * 0.7;
+    const sy = laneY + (laneH - spriteH) / 2;
 
-    // Shadow
-    this.addFlat(sx + 4, sy + bodyH + 2, bodyW, 6, 0, 0, 0, 0.25);
-
-    // Body (rounded)
-    this.addRound(sx, sy, bodyW, bodyH, r, g, b, 1.0);
-
-    // Head (rounded)
-    this.addRound(sx + bodyW - headW * 0.6, sy - headH + bodyH * 0.2, headW, headH, r * 0.8, g * 0.8, b * 0.8, 1.0);
-
-    // Jockey
-    const jockeyW = laneH * 0.22;
-    const jockeyH = laneH * 0.3;
-    this.addRound(sx + bodyW * 0.55 - jockeyW / 2, sy - jockeyH + 4, jockeyW, jockeyH, 0.95, 0.95, 0.95, 1.0);
-
-    // Animated legs
-    const speed = Math.max(0.5, horse.lastMove);
-    const freq = speed * 8;
-    const legW = 3;
-    const legH = laneH * 0.28;
-    const legY = sy + bodyH;
-    const legPositions = [0.2, 0.4, 0.6, 0.8];
-    for (let i = 0; i < 4; i++) {
-      const phase = i % 2 === 0 ? 0 : Math.PI;
-      const swing = Math.sin(time * freq + phase) * legH * 0.4;
-      const lx = sx + bodyW * legPositions[i] - legW / 2;
-      this.addFlat(lx, legY + Math.max(0, swing), legW, legH - Math.abs(swing) * 0.5, r * 0.5, g * 0.5, b * 0.5, 1.0);
+    if (sprite && sprite.ready) {
+      const bob = Math.sin(time * Math.max(3, horse.lastMove * 5)) * Math.min(3, laneH * 0.04);
+      this._drawTexture(sprite.texture, sx, sy + bob, spriteW, spriteH, 1);
     }
 
     // Name + position tag (on overlay)
-    return { sx, sy, bodyW, bodyH };
+    return { sx, sy, bodyW: spriteW, bodyH: spriteH };
   }
 
   _drawParticles(dt) {
@@ -308,8 +371,10 @@ export class Renderer {
     const sorted = [...horses].sort((a, b) => b.position - a.position);
     horses.forEach((horse, i) => {
       const laneY = trackTop + i * laneH;
-      const bodyW = laneH * 1.9;
-      const bodyH = laneH * 0.45;
+      const sprite = this.horseSprites[horse.laneIndex] || this.horseSprites[0];
+      const bodyH = laneH * 0.82;
+      const aspect = sprite ? sprite.width / sprite.height : 1.6;
+      const bodyW = bodyH * aspect;
       const sx = this.worldX(horse.position) - bodyW * 0.7;
       const sy = laneY + (laneH - bodyH) / 2;
       const rank = sorted.findIndex(h => h.id === horse.id) + 1;

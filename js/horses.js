@@ -38,7 +38,7 @@ export const HORSE_TYPES = [
     color: '#33CC55',
     glColor: [0.2, 0.8, 0.33],
     getSpeedRange(_pos) {
-      return [4, 7];
+      return [3.5, 6.5];
     }
   },
   {
@@ -51,7 +51,7 @@ export const HORSE_TYPES = [
     glColor: [1.0, 0.84, 0.0],
     getSpeedRange(_pos) {
       const r = Math.random();
-      if (r < 0.25) return [8, 10];
+      if (r < 0.20) return [7, 9];
       if (r < 0.45) return [1, 2];
       return [3, 7];
     }
