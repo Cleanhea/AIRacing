@@ -12,7 +12,7 @@
   <div id="setup-screen" class="screen active">
     <div class="setup-box">
       <h1 class="title">🏇 AI 경마 게임</h1>
-      <p class="subtitle">Gemini AI가 실시간 중계하는 100M 경마 레이스!</p>
+      <p class="subtitle">Gemini AI가 실시간 중계하는 1000M 경마 레이스!</p>
 
       <div class="panel">
         <div class="panel-label">Gemini API 키 (AI 중계 기능)</div>
@@ -21,13 +21,22 @@
       </div>
 
       <div class="panel">
-        <div class="panel-label">참가 말 수 선택</div>
+        <div class="panel-label">참전 말 선택</div>
         <div class="count-buttons" id="count-buttons"></div>
       </div>
 
       <div class="panel">
         <div class="panel-label">참가 말 소개</div>
         <div class="horse-cards" id="horse-cards"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">100회 테스트 툴</div>
+        <div class="test-tool">
+          <button id="run-test-btn" class="test-btn">100회 테스트 실행</button>
+          <div id="test-summary" class="test-summary"></div>
+        </div>
+        <div id="test-results" class="test-results"></div>
       </div>
 
       <button id="start-btn" class="start-btn">🚀 경기 시작!</button>
@@ -39,6 +48,7 @@
     <div class="canvas-wrap">
       <canvas id="race-canvas"></canvas>
       <canvas id="overlay-canvas"></canvas>
+      <div class="camera-hint">← → 또는 드래그로 시점 이동</div>
     </div>
 
     <div class="sidebar">
@@ -49,6 +59,11 @@
       <div>
         <div class="panel-label" style="margin-bottom:8px">순위</div>
         <div id="scoreboard"></div>
+      </div>
+
+      <div id="ability-section" class="ability-section" style="display:none">
+        <div class="ability-section-label">⚡ 특수 능력 발동</div>
+        <div id="ability-events" class="ability-events"></div>
       </div>
 
       <div class="commentary-box">

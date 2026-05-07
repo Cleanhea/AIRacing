@@ -87,7 +87,48 @@ export class Renderer {
     this.mToPx = 1;
     this.particles = [];
     this.time = 0;
+    this.background = this._loadImageTexture('image/background.png');
     this.horseSprites = this._loadHorseSprites(8);
+
+    this.visibleMeters = 140;
+    this.targetVisibleMeters = 140;
+    this.cinematicQueue = [];
+    this.cinematic = null;
+    this.cinematicDuration = 1.0;
+    this.userPanOffset = 0;
+    this.userPanLocked = false;
+  }
+
+  queueCinematics(events) {
+    if (!events || !events.length) return;
+    for (const e of events) {
+      this.cinematicQueue.push({
+        sourceLane: e.sourceLane,
+        sourceName: e.sourceName,
+        sourceColor: e.sourceColor,
+        icon: e.icon,
+        abilityName: e.abilityName,
+        message: e.message,
+        duration: this.cinematicDuration,
+        elapsed: 0,
+      });
+    }
+  }
+
+  isCinematicActive() {
+    return !!this.cinematic || this.cinematicQueue.length > 0;
+  }
+
+  _updateCinematic(dt) {
+    if (this.cinematic) {
+      this.cinematic.elapsed += dt;
+      if (this.cinematic.elapsed >= this.cinematic.duration) {
+        this.cinematic = null;
+      }
+    }
+    if (!this.cinematic && this.cinematicQueue.length > 0) {
+      this.cinematic = this.cinematicQueue.shift();
+    }
   }
 
   _prog(vs, fs) {
@@ -117,12 +158,57 @@ export class Renderer {
       glc.height = oc.height = H;
       gl.viewport(0, 0, W, H);
     }
-    this.mToPx = W / 22; // show ~22 meters wide
+    this.mToPx = W / this.visibleMeters;
     return { W, H };
   }
 
   worldX(meters) {
     return (meters - this.cameraX) * this.mToPx;
+  }
+
+  getVisualPosition(horse) {
+    return horse.displayPosition ?? horse.position;
+  }
+
+  isAnimating(gameState) {
+    return gameState.horses.some(h => (h.moveProgress ?? 1) < 1);
+  }
+
+  isRunningEffect(horse) {
+    return (horse.moveProgress ?? 1) < 1 || horse.runningEffectActive || (horse.runEffectTime ?? 0) > 0;
+  }
+
+  _easeAlmostLinear(t) {
+    const linear = t;
+    const smooth = t * t * (3 - 2 * t);
+    return linear * 0.85 + smooth * 0.15;
+  }
+
+  _advanceHorseAnimations(horses, dt) {
+    horses.forEach(horse => {
+      horse.runEffectTime = Math.max(0, (horse.runEffectTime ?? 0) - dt);
+      horse.dustTimer = Math.max(0, (horse.dustTimer ?? 0) - dt);
+      horse.abilityFlashTime = Math.max(0, (horse.abilityFlashTime ?? 0) - dt);
+      if (horse.runEffectTime === 0 && (horse.moveProgress ?? 1) >= 1) {
+        horse.runningEffectActive = false;
+      }
+
+      if ((horse.moveProgress ?? 1) >= 1) {
+        horse.displayPosition = horse.position;
+        return;
+      }
+
+      const duration = Math.max(0.1, horse.moveDuration || 2.2);
+      horse.moveProgress = Math.min(1, horse.moveProgress + dt / duration);
+      const eased = this._easeAlmostLinear(horse.moveProgress);
+      const start = horse.moveStartPosition ?? horse.displayPosition ?? horse.position;
+      const target = horse.moveTargetPosition ?? horse.position;
+      horse.displayPosition = start + (target - start) * eased;
+
+      if (horse.moveProgress >= 1) {
+        horse.displayPosition = horse.position;
+      }
+    });
   }
 
   _addQ(arr, n, x, y, w, h, r, g, b, a, u0=0, v0=0, u1=1, v1=1) {
@@ -146,47 +232,52 @@ export class Renderer {
     this.roundN = this._addQ(this.roundV, this.roundN, x, y, w, h, r, g, b, a);
   }
 
-  _loadHorseSprites(count) {
+  _loadImageTexture(src) {
     const gl = this.gl;
+    const texture = gl.createTexture();
+    const imageTexture = {
+      texture,
+      ready: false,
+      width: 1,
+      height: 1,
+    };
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      new Uint8Array([0, 0, 0, 0])
+    );
+
+    const img = new Image();
+    img.onload = () => {
+      imageTexture.ready = true;
+      imageTexture.width = img.naturalWidth || img.width || 1;
+      imageTexture.height = img.naturalHeight || img.height || 1;
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    };
+    img.src = src;
+
+    return imageTexture;
+  }
+
+  _loadHorseSprites(count) {
     const sprites = [];
 
     for (let i = 1; i <= count; i++) {
-      const texture = gl.createTexture();
-      const sprite = {
-        texture,
-        ready: false,
-        width: 1,
-        height: 1,
-      };
-
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        1,
-        1,
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        new Uint8Array([0, 0, 0, 0])
-      );
-
-      const img = new Image();
-      img.onload = () => {
-        sprite.ready = true;
-        sprite.width = img.naturalWidth || img.width || 1;
-        sprite.height = img.naturalHeight || img.height || 1;
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      };
-      img.src = `image/horse_${i}.png`;
-      sprites.push(sprite);
+      sprites.push(this._loadImageTexture(`image/horse_${i}.png`));
     }
 
     return sprites;
@@ -242,6 +333,24 @@ export class Renderer {
   }
 
   _drawBackground(W, H) {
+    if (this.background.ready) {
+      const aspect = this.background.width / this.background.height;
+      const visibleH = H * 0.48;
+      const tileW = W;
+      const tileH = tileW / aspect;
+      const drawH = Math.max(visibleH, tileH);
+      const drawW = drawH * aspect;
+      const scroll = (this.cameraX * this.mToPx * 0.18) % drawW;
+      let x = -scroll - tileW;
+
+      while (x < W + drawW) {
+        this._drawTexture(this.background.texture, x, 0, drawW, drawH, 1);
+        x += drawW;
+      }
+
+      return;
+    }
+
     // Sky gradient (manual with 2 quads)
     this.addFlat(0, 0,       W, H * 0.28,  0.18, 0.3, 0.55, 1.0);
     this.addFlat(0, H*0.15, W, H * 0.13,  0.25, 0.45, 0.7, 1.0);
@@ -284,17 +393,18 @@ export class Renderer {
     return { trackTop, trackH, laneH };
   }
 
-  _drawDistanceMarkers(W, H, trackTop, trackH) {
-    for (let d = 0; d <= 100; d += 10) {
+  _drawDistanceMarkers(W, H, trackTop, trackH, finishLine) {
+    const step = finishLine >= 1000 ? 100 : 10;
+    for (let d = 0; d <= finishLine; d += step) {
       const sx = this.worldX(d);
       if (sx < -20 || sx > W + 20) continue;
-      const alpha = d === 100 ? 0.9 : 0.35;
+      const alpha = d === finishLine ? 0.9 : 0.35;
       this.addFlat(sx - 1, trackTop, 2, trackH, 0.8, 0.8, 0.6, alpha);
     }
   }
 
-  _drawFinishLine(H, trackTop, trackH) {
-    const sx = this.worldX(100);
+  _drawFinishLine(H, trackTop, trackH, finishLine) {
+    const sx = this.worldX(finishLine);
     if (sx < -20 || sx > this.glc.width + 20) return;
     // Checkered pattern
     const tileH = 16;
@@ -306,16 +416,37 @@ export class Renderer {
     }
   }
 
-  _drawHorse(horse, laneY, laneH, time) {
-    const sprite = this.horseSprites[horse.laneIndex] || this.horseSprites[0];
+  _drawHorseAura(horse, laneY, laneH, time) {
+    const flash = horse.abilityFlashTime ?? 0;
+    const hasBuff = (horse.buffs ?? []).length > 0;
+    if (flash <= 0 && !hasBuff) return;
+    const sprite = this.horseSprites[horse.spriteIndex ?? horse.laneIndex] || this.horseSprites[0];
     const spriteH = laneH * 0.82;
     const aspect = sprite ? sprite.width / sprite.height : 1.6;
     const spriteW = spriteH * aspect;
-    const sx = this.worldX(horse.position) - spriteW * 0.7;
+    const sx = this.worldX(this.getVisualPosition(horse)) - spriteW * 0.7;
+    const sy = laneY + (laneH - spriteH) / 2;
+    const [gr, gg, gb] = horse.type.glColor || [1, 1, 1];
+    const pulse = 0.5 + 0.5 * Math.sin(time * 8);
+    const flashAlpha = Math.min(1, flash) * 0.6;
+    const buffAlpha = hasBuff ? 0.18 + pulse * 0.2 : 0;
+    const alpha = Math.max(flashAlpha, buffAlpha);
+    const pad = laneH * 0.18 + flash * 10;
+    this.addRound(sx - pad, sy - pad, spriteW + pad * 2, spriteH + pad * 2, gr, gg, gb, alpha);
+  }
+
+  _drawHorse(horse, laneY, laneH, time) {
+    const sprite = this.horseSprites[horse.spriteIndex ?? horse.laneIndex] || this.horseSprites[0];
+    const spriteH = laneH * 0.82;
+    const aspect = sprite ? sprite.width / sprite.height : 1.6;
+    const spriteW = spriteH * aspect;
+    const sx = this.worldX(this.getVisualPosition(horse)) - spriteW * 0.7;
     const sy = laneY + (laneH - spriteH) / 2;
 
     if (sprite && sprite.ready) {
-      const bob = Math.sin(time * Math.max(3, horse.lastMove * 5)) * Math.min(3, laneH * 0.04);
+      const moving = this.isRunningEffect(horse);
+      const bobSpeed = moving ? Math.max(8, horse.lastMove * 4) : 3;
+      const bob = Math.sin(time * bobSpeed) * Math.min(moving ? 4 : 1.5, laneH * 0.05);
       this._drawTexture(sprite.texture, sx, sy + bob, spriteW, spriteH, 1);
     }
 
@@ -337,13 +468,18 @@ export class Renderer {
   }
 
   emitDust(horse, laneY, laneH) {
-    if (horse.position <= 0 || horse.lastMove < 1) return;
+    const visualPosition = this.getVisualPosition(horse);
+    if (visualPosition <= 0 || horse.lastMove < 1 || !this.isRunningEffect(horse)) return;
+    if ((horse.dustTimer ?? 0) > 0) return;
+
+    const moving = (horse.moveProgress ?? 1) < 1;
+    horse.dustTimer = moving ? 0.04 : 0.12;
     const bodyW = laneH * 1.9;
     const bodyH = laneH * 0.45;
     const legY = laneY + (laneH - bodyH) / 2 + bodyH;
     for (let i = 0; i < 2; i++) {
       this.particles.push({
-        x: horse.position - bodyW / this.mToPx * 0.1,
+        x: visualPosition - bodyW / this.mToPx * 0.1,
         y: legY + Math.random() * 8 - 4,
         speed: 0.5 + Math.random() * 1.5,
         life: 0.4 + Math.random() * 0.4,
@@ -353,7 +489,7 @@ export class Renderer {
     }
   }
 
-  _drawOverlay(horses, numHorses, trackTop, laneH, W, H) {
+  _drawOverlay(horses, numHorses, trackTop, laneH, W, H, finishLine) {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, W, H);
 
@@ -361,21 +497,28 @@ export class Renderer {
     ctx.font = '11px monospace';
     ctx.fillStyle = 'rgba(220,210,180,0.7)';
     ctx.textAlign = 'center';
-    for (let d = 0; d <= 100; d += 10) {
+    const step = finishLine >= 1000 ? 100 : 10;
+    for (let d = 0; d <= finishLine; d += step) {
       const sx = this.worldX(d);
       if (sx < 0 || sx > W) continue;
-      ctx.fillText(d === 100 ? 'GOAL' : `${d}M`, sx, trackTop - 5);
+      ctx.fillText(d === finishLine ? 'GOAL' : `${d}M`, sx, trackTop - 5);
     }
 
     // Horse name tags
-    const sorted = [...horses].sort((a, b) => b.position - a.position);
+    const sorted = [...horses].sort((a, b) => {
+      if (a.finished && b.finished) return a.rank - b.rank;
+      if (a.finished) return -1;
+      if (b.finished) return 1;
+      return this.getVisualPosition(b) - this.getVisualPosition(a);
+    });
     horses.forEach((horse, i) => {
       const laneY = trackTop + i * laneH;
-      const sprite = this.horseSprites[horse.laneIndex] || this.horseSprites[0];
+      const sprite = this.horseSprites[horse.spriteIndex ?? horse.laneIndex] || this.horseSprites[0];
       const bodyH = laneH * 0.82;
       const aspect = sprite ? sprite.width / sprite.height : 1.6;
       const bodyW = bodyH * aspect;
-      const sx = this.worldX(horse.position) - bodyW * 0.7;
+      const visualPosition = this.getVisualPosition(horse);
+      const sx = this.worldX(visualPosition) - bodyW * 0.7;
       const sy = laneY + (laneH - bodyH) / 2;
       const rank = sorted.findIndex(h => h.id === horse.id) + 1;
 
@@ -395,38 +538,164 @@ export class Renderer {
       ctx.font = `bold ${Math.max(10, laneH * 0.22)}px sans-serif`;
       ctx.fillStyle = horse.type.color;
       ctx.textAlign = 'left';
-      ctx.fillText(`${horse.type.name} ${horse.position.toFixed(1)}M`, 5, laneY + laneH * 0.4);
+      ctx.fillText(`${horse.type.name} ${visualPosition.toFixed(1)}M`, 5, laneY + laneH * 0.4);
+
+      // Ability flash icon
+      const flash = horse.abilityFlashTime ?? 0;
+      if (flash > 0 && horse.type.ability) {
+        const alpha = Math.min(1, flash);
+        const lift = (1 - Math.min(1, flash)) * laneH * 0.4;
+        const iconSize = Math.max(20, laneH * 0.4);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = `${iconSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(horse.type.ability.icon, sx + bodyW * 0.5, sy - 8 - lift);
+        ctx.restore();
+      }
     });
+
+    if (this.cinematic) {
+      this._drawCinematicBanner(W, H);
+    }
+  }
+
+  _drawCinematicBanner(W, H) {
+    const c = this.cinematic;
+    const t = c.elapsed / c.duration;
+    let alpha = 1;
+    if (t < 0.15) alpha = t / 0.15;
+    else if (t > 0.85) alpha = (1 - t) / 0.15;
+    alpha = Math.max(0, Math.min(1, alpha));
+
+    const ctx = this.ctx;
+    const barH = Math.min(120, H * 0.18);
+    const barY = H * 0.14;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    // Side vignette to dim the rest of the screen
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(0, 0, W, barY);
+    ctx.fillRect(0, barY + barH, W, H - (barY + barH));
+
+    // Banner background gradient
+    const grad = ctx.createLinearGradient(0, barY, 0, barY + barH);
+    grad.addColorStop(0, 'rgba(8, 8, 22, 0.92)');
+    grad.addColorStop(0.5, 'rgba(20, 18, 45, 0.95)');
+    grad.addColorStop(1, 'rgba(8, 8, 22, 0.92)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, barY, W, barH);
+
+    // Color accent lines top/bottom
+    ctx.fillStyle = c.sourceColor;
+    ctx.fillRect(0, barY, W, 3);
+    ctx.fillRect(0, barY + barH - 3, W, 3);
+
+    // Pop-in scale for title
+    const popT = Math.min(1, t * 8);
+    const scale = 0.65 + popT * 0.35;
+    const titleY = barY + barH * 0.48;
+
+    ctx.textAlign = 'center';
+    ctx.shadowColor = c.sourceColor;
+    ctx.shadowBlur = 22;
+    ctx.fillStyle = c.sourceColor;
+    const titleSize = Math.min(54, Math.max(28, W * 0.05));
+    ctx.font = `bold ${titleSize}px sans-serif`;
+
+    ctx.save();
+    ctx.translate(W / 2, titleY);
+    ctx.scale(scale, scale);
+    ctx.fillText(`${c.icon}  ${c.abilityName}`, 0, 0);
+    ctx.restore();
+
+    ctx.shadowBlur = 0;
+    const subSize = Math.min(20, Math.max(13, W * 0.018));
+    ctx.font = `${subSize}px sans-serif`;
+    ctx.fillStyle = '#e8e0ff';
+    ctx.fillText(c.message || c.sourceName, W / 2, titleY + titleSize * 0.7);
+
+    ctx.restore();
   }
 
   render(gameState, dt) {
-    this.time += dt;
+    this._updateCinematic(dt);
+    const worldDt = this.cinematic ? 0 : dt;
+    this.time += worldDt;
+    this._advanceHorseAnimations(gameState.horses, worldDt);
+
+    let cinematicHorse = null;
+    if (this.cinematic) {
+      cinematicHorse = gameState.horses.find(h => h.laneIndex === this.cinematic.sourceLane);
+    }
+
+    // Auto camera target + zoom
+    let autoCX, autoZoom;
+    if (cinematicHorse) {
+      autoZoom = 80;
+      const pos = this.getVisualPosition(cinematicHorse);
+      autoCX = pos - autoZoom * 0.45;
+    } else {
+      const racing = gameState.horses.filter(h => !h.finished);
+      const positions = (racing.length > 0 ? racing : gameState.horses).map(h => this.getVisualPosition(h));
+      const leadPos = Math.max(...positions);
+      const lastPos = Math.min(...positions);
+      const spread = leadPos - lastPos;
+      autoZoom = Math.max(70, Math.min(180, spread + 40));
+      const packCenter = lastPos * 0.4 + leadPos * 0.6;
+      autoCX = packCenter - autoZoom * 0.5;
+    }
+
+    this.targetVisibleMeters = autoZoom;
+    this.visibleMeters += (this.targetVisibleMeters - this.visibleMeters) * Math.min(1, dt * 5);
+
+    // Decay user pan offset when not actively held
+    if (!this.cinematic && !this.userPanLocked) {
+      this.userPanOffset += (0 - this.userPanOffset) * Math.min(1, dt * 1.5);
+      if (Math.abs(this.userPanOffset) < 0.05) this.userPanOffset = 0;
+    }
+
     const { W, H } = this.resize();
     const gl = this.gl;
     gl.clearColor(0.1, 0.1, 0.18, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // Camera follow
-    const leadPos = gameState.leader.position;
-    this.targetCX = Math.max(0, Math.min(85, leadPos - 8));
-    this.cameraX += (this.targetCX - this.cameraX) * Math.min(1, dt * 4);
+    // Camera target with optional user pan
+    let targetCX = autoCX;
+    if (!this.cinematic) targetCX += this.userPanOffset;
+    const finishLine = gameState.finishLine ?? 100;
+    targetCX = Math.max(0, Math.min(finishLine - this.visibleMeters * 0.7, targetCX));
+
+    const followSpeed = cinematicHorse ? 7 : (this.userPanLocked ? 9 : 4);
+    this.targetCX = targetCX;
+    this.cameraX += (this.targetCX - this.cameraX) * Math.min(1, dt * followSpeed);
 
     this.flatN = 0;
     this.roundN = 0;
 
     this._drawBackground(W, H);
     const { trackTop, trackH, laneH } = this._drawTrack(W, H, gameState.horses.length);
-    this._drawDistanceMarkers(W, H, trackTop, trackH);
-    this._drawFinishLine(H, trackTop, trackH);
+    this._drawDistanceMarkers(W, H, trackTop, trackH, finishLine);
+    this._drawFinishLine(H, trackTop, trackH, finishLine);
 
-    // Dust particles
-    this._drawParticles(dt);
+    // Dust particles (frozen during cinematic)
+    this._drawParticles(worldDt);
 
     // Flush flat geometry first
     this._flush(this.flatProg, this.flatV, this.flatN);
     this.flatN = 0;
 
-    // Horses (rounded)
+    // Ability auras (drawn behind sprites)
+    gameState.horses.forEach((horse) => {
+      const laneY = trackTop + horse.laneIndex * laneH;
+      this._drawHorseAura(horse, laneY, laneH, this.time);
+    });
+    this._flush(this.roundProg, this.roundV, this.roundN);
+    this.roundN = 0;
+
+    // Horse sprites
     gameState.horses.forEach((horse) => {
       const laneY = trackTop + horse.laneIndex * laneH;
       this._drawHorse(horse, laneY, laneH, this.time);
@@ -436,6 +705,6 @@ export class Renderer {
     this._flush(this.roundProg, this.roundV, this.roundN);
 
     // Overlay text
-    this._drawOverlay(gameState.horses, gameState.horses.length, trackTop, laneH, W, H);
+    this._drawOverlay(gameState.horses, gameState.horses.length, trackTop, laneH, W, H, finishLine);
   }
 }
