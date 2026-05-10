@@ -18,23 +18,22 @@ export const HORSE_TYPES = [
       id: 'final_burst',
       icon: '🔥',
       name: '막판 스퍼트',
-      description: '전체 거리 60% 이후 26% 확률로 짧은 시간 동안 2배 가속',
+      description: '전체 거리 60% 이후 26% 확률로 짧은 시간 동안 1.5배 가속',
       cooldown: 3,
       trigger(horse, game) {
-        if (horse.position < game.finishLine * 0.6) return null;
-        if (Math.random() >= 0.26) return null;
+        if (horse.position < game.finishLine * 0.7) return null;
         return {
           type: 'self_buff',
-          buff: { kind: 'speed_mult', value: 2, roundsLeft: 1, label: '🔥' },
+          buff: { kind: 'speed_mult', value: 2.5, roundsLeft: 1, label: '🔥' },
           message: `${horse.name}, 결승선이 보이자 막판 스퍼트 발동! 2배 가속!`,
         };
       },
     },
     getSpeedRange(pos) {
       const p = progressOf(pos);
-      if (p < 0.3) return [10, 12];
-      if (p < 0.6) return [11, 13];
-      return [15, 20];
+      if (p < 0.3) return [8, 12];
+      if (p < 0.6) return [10, 13];
+      return [15, 23];
     }
   },
   {
@@ -57,7 +56,7 @@ export const HORSE_TYPES = [
         if (Math.random() >= 0.18) return null;
         return {
           type: 'self_warp',
-          amount: 60,
+          amount: 80,
           message: `${horse.name}이(가) 기선제압! 출발과 동시에 +60M 점프!`,
         };
       },
@@ -110,17 +109,17 @@ export const HORSE_TYPES = [
       id: 'lucky_coin',
       icon: '💰',
       name: '행운의 동전',
-      description: '40% 확률로 동전 던지기! 성공 시 +100M, 실패 시 -100M',
+      description: '40% 확률로 동전 던지기! 성공 시 +85M, 실패 시 -75M',
       cooldown: 1,
       trigger(horse) {
         if (Math.random() >= 0.4) return null;
-        const lucky = Math.random() < 0.5;
+        const lucky = Math.random() < 0.6;
         return {
           type: 'self_warp',
-          amount: lucky ? 130 : -100,
+          amount: lucky ? 80 : -50,
           message: lucky
-            ? `${horse.name}, 행운의 동전 앞면! 단숨에 +130M 점프!`
-            : `${horse.name}, 동전 뒷면이 나왔다! -100M 후퇴...`,
+            ? `${horse.name}, 행운의 동전 앞면! 단숨에 +85M 점프!`
+            : `${horse.name}, 동전 뒷면이 나왔다! -75M 후퇴...`,
         };
       },
     },
@@ -145,7 +144,7 @@ export const HORSE_TYPES = [
       icon: '💥',
       name: '진흙탕 작전',
       description: '25~75% 구간에서 20% 확률로 가장 가까운 라이벌 -80M',
-      cooldown: 3,
+      cooldown: 2,
       trigger(horse, game) {
         if (horse.position < game.finishLine * 0.25 || horse.position > game.finishLine * 0.75) return null;
         if (Math.random() >= 0.2) return null;
@@ -162,7 +161,7 @@ export const HORSE_TYPES = [
     getSpeedRange(pos) {
       const p = progressOf(pos);
       const peak = Math.exp(-Math.pow((p - 0.5) * 4.5, 2));
-      return [11.3 + peak * 2, 14 + peak * 5];
+      return [11 + peak * 2, 15 + peak * 5];
     }
   },
   {
@@ -181,7 +180,7 @@ export const HORSE_TYPES = [
       description: '매 8초마다 +180M 즉시 이동 (확정 발동)',
       cooldown: 0,
       trigger(horse, game) {
-        if (game.round === 0 || game.round % 8 !== 0) return null;
+        if (game.round === 0 || game.round % 7 !== 0) return null;
         return {
           type: 'self_warp',
           amount: 180,
@@ -210,7 +209,7 @@ export const HORSE_TYPES = [
       description: '스킬 체크 시 16% 확률로 +100M 순간 워프',
       cooldown: 4,
       trigger(horse) {
-        if (Math.random() >= 0.16) return null;
+        if (Math.random() >= 0.20) return null;
         return {
           type: 'self_warp',
           amount: 100,
@@ -236,7 +235,7 @@ export const HORSE_TYPES = [
       id: 'comeback',
       icon: '🏹',
       name: '추격 본능',
-      description: '4등 이하일 때 20% 확률로 +100M 즉시 이동',
+      description: '4등 이하일 때 20% 확률로 +70M 즉시 이동',
       cooldown: 2,
       trigger(horse, game) {
         const sorted = game.sortedByPosition;
@@ -257,6 +256,19 @@ export const HORSE_TYPES = [
     }
   }
 ];
+
+// 100,000회 시뮬레이션 기반 사전 측정 배당 (8마리 모두 출전 기준, margin 0.85)
+// 측정 확률은 주석에 함께 기록 (변경 시 scripts/simulate-odds.mjs 재실행)
+export const BASE_ODDS = {
+  late_surge:   { win: 5.3,  place: 1.2 }, // win 15.98% / place 69.27%
+  front_runner: { win: 6.1,  place: 3.9 }, // win 13.91% / place 22.02%
+  steady:       { win: 26.8, place: 3.9 }, // win  3.18% / place 22.00%
+  lucky_star:   { win: 4.9,  place: 3.4 }, // win 17.47% / place 25.27%
+  mid_race:     { win: 19.5, place: 1.9 }, // win  4.37% / place 44.51%
+  stamina:      { win: 7.9,  place: 2.0 }, // win 10.78% / place 42.65%
+  sprinter:     { win: 5.3,  place: 2.9 }, // win 16.08% / place 29.82%
+  tactician:    { win: 4.7,  place: 1.9 }, // win 18.25% / place 44.46%
+};
 
 export function calculateSpeed(horseType, position, leadPosition, buffs = []) {
   const [min, max] = horseType.getSpeedRange(position, leadPosition);

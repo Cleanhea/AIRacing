@@ -1,5 +1,46 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── BGM 컨트롤 (모든 화면 공통, 우상단 고정) ── */
+.sound-controls {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(15, 14, 38, 0.85);
+  border: 1px solid #3a3060;
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+.sound-toggle {
+  background: transparent;
+  border: none;
+  color: #ffd700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.sound-toggle:hover { transform: scale(1.1); }
+.sound-volume {
+  width: 100px;
+  accent-color: #ffd700;
+  cursor: pointer;
+}
+.sound-volume-label {
+  font-size: 0.78rem;
+  color: #ddd;
+  min-width: 22px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px) {
+  .sound-volume { width: 70px; }
+}
+
 body {
   background: #12112a;
   color: #eee;
@@ -583,3 +624,391 @@ h1.title {
   background: linear-gradient(135deg, #ffd700, #ff8c00);
   color: #12112a;
 }
+
+/* ── Tournament: Config / Round Prep / Round Result ── */
+#config-screen,
+#round-prep-screen,
+#round-result-screen,
+#final-screen {
+  align-items: center;
+  padding: 40px 20px;
+  background: radial-gradient(ellipse at top, #1e1a45 0%, #12112a 70%);
+}
+
+.mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .mode-options { grid-template-columns: 1fr; }
+}
+.mode-option { cursor: pointer; }
+.mode-option input { display: none; }
+.mode-card {
+  border: 2px solid #3a3060;
+  border-radius: 12px;
+  padding: 16px;
+  background: #15132e;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.mode-option input:checked + .mode-card {
+  border-color: #ffd700;
+  background: #1f1a40;
+}
+.mode-title {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #ffd700;
+  margin-bottom: 6px;
+}
+.mode-desc {
+  font-size: 0.85rem;
+  color: #aaa;
+  line-height: 1.5;
+}
+
+.team-count-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.team-count-row .api-input { max-width: 140px; }
+.team-count-row .hint { font-size: 0.82rem; color: #888; }
+
+.team-names {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.team-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #aaa;
+}
+
+.config-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.config-actions .start-btn { flex: 1; margin-top: 0; }
+.ghost-btn {
+  padding: 14px 20px;
+  background: transparent;
+  border: 2px solid #3a3060;
+  color: #aaa;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+.ghost-btn:hover { border-color: #ffd700; color: #ffd700; }
+
+/* Odds table */
+.odds-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.odds-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.odds-row.odds-head {
+  font-size: 0.78rem;
+  color: #ffd700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #3a3060;
+  margin-bottom: 4px;
+}
+.odds-input { padding: 8px 10px; font-size: 0.9rem; }
+.odds-value {
+  background: #0f0e26;
+  border: 1px solid #2a234d;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.92rem;
+  color: #ffd700;
+  text-align: center;
+  font-weight: bold;
+}
+
+.horse-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+.horse-tag .horse-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Teams input cards */
+.teams-input {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.team-bet-card {
+  background: #15132e;
+  border: 1px solid #3a3060;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.team-bet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2a234d;
+}
+.team-bet-name {
+  font-weight: bold;
+  color: #ffd700;
+  font-size: 1rem;
+}
+.team-bet-resource { font-size: 0.85rem; color: #aaa; }
+.team-bet-resource strong { color: #fff; }
+.team-bet-total {
+  font-size: 0.85rem;
+  color: #aaa;
+  padding: 4px 10px;
+  background: #0f0e26;
+  border-radius: 6px;
+}
+.team-bet-total.over { color: #ff6b6b; border: 1px solid #ff6b6b; }
+.team-bet-total strong { color: #ffd700; }
+
+.bet-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bet-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.bet-row.invest-row {
+  grid-template-columns: 1.4fr 1fr;
+}
+.bet-input { padding: 7px 10px; font-size: 0.9rem; }
+
+/* Horse info panel (라운드 준비 화면) */
+.prep-horse-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.prep-horse-card {
+  background: #15132e;
+  border: 1px solid #3a3060;
+  border-radius: 10px;
+  padding: 12px;
+}
+.prep-horse-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.prep-horse-head .horse-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.prep-horse-title { flex: 1; min-width: 0; }
+.prep-horse-name {
+  font-weight: bold;
+  font-size: 0.98rem;
+  margin-bottom: 4px;
+}
+.prep-horse-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.prep-horse-meta .trait-badge {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #2a234d;
+  color: #ddd;
+}
+.prep-horse-jockey { font-size: 0.75rem; color: #888; }
+.prep-horse-desc {
+  font-size: 0.82rem;
+  color: #bbb;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.prep-ability {
+  background: #0f0e26;
+  border: 1px solid #3a3060;
+  border-left-width: 3px;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.prep-ability-tag {
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+.prep-ability-desc {
+  font-size: 0.78rem;
+  color: #aaa;
+  line-height: 1.45;
+}
+.prep-ability-empty {
+  font-size: 0.78rem;
+  color: #555;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Pick (mode 2) — 라디오 카드 그리드 */
+.pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.pick-option { cursor: pointer; }
+.pick-option input { display: none; }
+.pick-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #0f0e26;
+  border: 2px solid #3a3060;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.pick-card .horse-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pick-option:hover .pick-card { border-color: var(--horse-color, #ffd700); }
+.pick-option input:checked + .pick-card {
+  border-color: var(--horse-color, #ffd700);
+  background: #1f1a40;
+  box-shadow: 0 0 0 1px var(--horse-color, #ffd700) inset;
+}
+.pick-card-name { flex: 1; min-width: 0; }
+.pick-card-odds {
+  font-size: 0.72rem;
+  color: #ffd700;
+  background: #2a234d;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Bet kind 라디오 (모드 1) */
+.bet-kind-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.bet-kind-option { cursor: pointer; }
+.bet-kind-option input { display: none; }
+.bet-kind-card {
+  text-align: center;
+  padding: 10px;
+  background: #0f0e26;
+  border: 2px solid #3a3060;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: bold;
+  color: #aaa;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.bet-kind-option:hover .bet-kind-card { border-color: #ffd700; color: #ffd700; }
+.bet-kind-option input:checked + .bet-kind-card {
+  background: #1f1a40;
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
+.bet-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.bet-amount-label {
+  font-size: 0.85rem;
+  color: #aaa;
+  flex-shrink: 0;
+}
+.bet-amount-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  text-align: right;
+}
+.bet-allin-btn {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
+/* Round result settle table */
+.race-rank-list { margin-bottom: 8px; }
+.race-rank-list .rank-point {
+  font-size: 0.78rem;
+  color: #ffd700;
+  background: #2a234d;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: normal;
+}
+
+.settle-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.settle-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr 1fr;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #15132e;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+.point-table .settle-row { grid-template-columns: 0.8fr 1.6fr 0.6fr 0.8fr; }
+.settle-row.settle-head {
+  background: transparent;
+  color: #ffd700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+}
+.settle-row .pos { color: #4ad66d; }
+.settle-row .neg { color: #ff8c8c; }
+.settle-row .profit { color: #888; font-size: 0.78rem; }
+

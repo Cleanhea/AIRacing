@@ -592,20 +592,22 @@ export class Renderer {
       cinematicHorse = gameState.horses.find(h => h.laneIndex === this.cinematic.sourceLane);
     }
 
-    // Auto camera target + zoom
-    let autoCX, autoZoom;
+    // Auto camera target + zoom — 줌은 항상 모든 말을 잡는 wide-shot 유지
+    const positions = gameState.horses.map(h => this.getVisualPosition(h));
+    const leadPos = Math.max(...positions);
+    const lastPos = Math.min(...positions);
+    const spread = leadPos - lastPos;
+    const finishLine = gameState.finishLine ?? 1000;
+    const padding = 120; // 좌우 합쳐 120m 여유
+    const autoZoom = Math.max(180, Math.min(finishLine + padding, spread + padding));
+
+    // 포커스: 스킬 발동 중이면 해당 말 중심으로, 아니면 무리 정중앙
+    let autoCX;
     if (cinematicHorse) {
-      autoZoom = 130;
       const pos = this.getVisualPosition(cinematicHorse);
-      autoCX = pos - autoZoom * 0.45;
+      autoCX = pos - autoZoom * 0.5;
     } else {
-      const racing = gameState.horses.filter(h => !h.finished);
-      const positions = (racing.length > 0 ? racing : gameState.horses).map(h => this.getVisualPosition(h));
-      const leadPos = Math.max(...positions);
-      const lastPos = Math.min(...positions);
-      const spread = leadPos - lastPos;
-      autoZoom = Math.max(150, Math.min(260, spread + 80));
-      const packCenter = lastPos * 0.4 + leadPos * 0.6;
+      const packCenter = (leadPos + lastPos) / 2;
       autoCX = packCenter - autoZoom * 0.5;
     }
 
@@ -626,7 +628,6 @@ export class Renderer {
     // Camera target with optional user pan
     let targetCX = autoCX;
     targetCX += this.userPanOffset;
-    const finishLine = gameState.finishLine ?? 100;
     targetCX = Math.max(0, Math.min(finishLine - this.visibleMeters * 0.7, targetCX));
 
     const followSpeed = cinematicHorse ? 4 : (this.userPanLocked ? 6 : 2.2);

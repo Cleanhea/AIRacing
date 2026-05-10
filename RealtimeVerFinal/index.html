@@ -8,17 +8,21 @@
 </head>
 <body>
 
+  <!-- ── BGM ── -->
+  <audio id="bgm" src="bgm/mainLobby.mp3" loop preload="auto"></audio>
+
+  <!-- ── 사운드 컨트롤 (모든 화면 공통) ── -->
+  <div id="sound-controls" class="sound-controls">
+    <button id="sound-toggle" class="sound-toggle" title="음소거 토글">🔊</button>
+    <input type="range" id="sound-volume" class="sound-volume" min="0" max="100" value="40" title="볼륨">
+    <span id="sound-volume-label" class="sound-volume-label">40</span>
+  </div>
+
   <!-- ── 설정 화면 ── -->
   <div id="setup-screen" class="screen active">
     <div class="setup-box">
-      <h1 class="title">🏇 AI 경마 게임</h1>
-      <p class="subtitle">Gemini AI가 실시간 중계하는 1000M 경마 레이스!</p>
-
-      <div class="panel">
-        <div class="panel-label">Gemini API 키 (AI 중계 기능)</div>
-        <input id="api-key" class="api-input" type="password" placeholder="AIza... (없으면 기본 중계)">
-        <div class="api-hint">API 키 없이도 게임은 가능합니다. AI 중계를 원하면 Google AI Studio에서 발급하세요.</div>
-      </div>
+      <h1 class="title">🏇 경마 게임</h1>
+      <p class="subtitle">실시간 중계 1000M 경마 레이스!</p>
 
       <div class="panel">
         <div class="panel-label">참전 말 선택</div>
@@ -39,7 +43,89 @@
         <div id="test-results" class="test-results"></div>
       </div>
 
-      <button id="start-btn" class="start-btn">🚀 경기 시작!</button>
+      <button id="start-btn" class="start-btn">다음 ▶ 게임 모드 / 조 설정</button>
+    </div>
+  </div>
+
+  <!-- ── 게임 모드 / 조 설정 ── -->
+  <div id="config-screen" class="screen">
+    <div class="setup-box">
+      <h1 class="title">🎮 게임 설정</h1>
+      <p class="subtitle">총 3라운드 · 최대 8개 조 · 모드 선택</p>
+
+      <div class="panel">
+        <div class="panel-label">게임 모드</div>
+        <div class="mode-options">
+          <label class="mode-option">
+            <input type="radio" name="game-mode" value="bet" checked>
+            <div class="mode-card">
+              <div class="mode-title">💰 모드 1 · 베팅</div>
+              <div class="mode-desc">운영자가 매 라운드 각 말의 1등 / 3등안 배당률을 입력. 각 조는 자유 분배 베팅 후 적중분만큼 자금 획득.</div>
+            </div>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="game-mode" value="point">
+            <div class="mode-card">
+              <div class="mode-title">📊 모드 2 · 포인트 투자</div>
+              <div class="mode-desc">각 조가 라운드별 풀을 말에 분배 투자. 등수점수(10·7·5·3·2·1·1·0) × 투자비율의 합이 라운드 점수.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">참가 조 수 (2 ~ 8)</div>
+        <div class="team-count-row">
+          <input type="number" id="team-count-input" class="api-input" min="2" max="8" value="4">
+          <span class="hint">라운드별로 같은 말 라인업으로 진행됩니다.</span>
+        </div>
+      </div>
+
+      <div class="panel" id="starting-resource-panel">
+        <div class="panel-label">시작 자금</div>
+        <div class="team-count-row">
+          <input type="number" id="starting-resource-input" class="api-input" min="1" value="1000">
+          <span class="hint" id="starting-resource-hint">베팅 모드 시작 자금. 적중 시 베팅금 × 배당률만큼 추가됩니다.</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">조 이름</div>
+        <div id="team-names" class="team-names"></div>
+      </div>
+
+      <div class="config-actions">
+        <button id="config-back-btn" class="ghost-btn">◀ 말 선택으로</button>
+        <button id="config-next-btn" class="start-btn">라운드 1 준비 ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 라운드 준비 (베팅/투자 입력) ── -->
+  <div id="round-prep-screen" class="screen">
+    <div class="setup-box">
+      <h1 class="title" id="prep-title">라운드 1 준비</h1>
+      <p class="subtitle" id="prep-subtitle"></p>
+
+      <div class="panel">
+        <div class="panel-label">🐎 출전 말 · 특성 / 능력</div>
+        <div id="prep-horse-info" class="prep-horse-info"></div>
+      </div>
+
+      <div class="panel" id="odds-panel">
+        <div class="panel-label">⚙️ 운영자 입력 · 말별 배당률</div>
+        <div id="odds-table" class="odds-table"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label" id="teams-input-label">각 조의 베팅 입력</div>
+        <div id="teams-input" class="teams-input"></div>
+      </div>
+
+      <div class="config-actions">
+        <button id="prep-back-btn" class="ghost-btn">◀ 이전</button>
+        <button id="prep-start-btn" class="start-btn">🚀 레이스 시작!</button>
+      </div>
     </div>
   </div>
 
@@ -67,7 +153,7 @@
       </div>
 
       <div class="commentary-box">
-        <h3>AI 중계 <span class="gemini-tag">Gemini</span></h3>
+        <h3>중계</h3>
         <div id="commentary">경기 시작을 기다리는 중...</div>
       </div>
 
@@ -81,12 +167,27 @@
     </div>
   </div>
 
-  <!-- ── 결과 화면 ── -->
-  <div id="result-screen" class="screen">
+  <!-- ── 라운드 결과 화면 ── -->
+  <div id="round-result-screen" class="screen">
     <div class="result-box">
-      <h1>🏆 경기 종료!</h1>
-      <div id="final-results"></div>
-      <button id="restart-btn">🔄 다시하기</button>
+      <h1 id="round-result-title">라운드 1 결과</h1>
+      <div id="race-rank-list" class="race-rank-list"></div>
+      <div class="panel" style="margin-top:18px">
+        <div class="panel-label" id="round-settle-label">라운드 정산</div>
+        <div id="round-settle"></div>
+      </div>
+      <div class="config-actions">
+        <button id="next-round-flow-btn" class="start-btn">다음 라운드 ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 최종 결과 화면 ── -->
+  <div id="final-screen" class="screen">
+    <div class="result-box">
+      <h1>🏆 최종 순위</h1>
+      <div id="final-standings"></div>
+      <button id="restart-btn">🔄 처음부터 다시</button>
     </div>
   </div>
 
