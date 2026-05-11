@@ -8,9 +8,9 @@ export const HORSE_TYPES = [
   {
     id: 'late_surge',
     realtimeBalance: 1,
-    name: '후반 폭발마',
+    name: '홍염 역습',
     jockey: '기수 김민준',
-    description: '초반 400M는 느리게 달리지만 후반에 폭발적으로 가속합니다. 결승선에 가까울수록 무서운 속도를 냅니다.',
+    description: '초반 300M는 절제된 페이스로 달립니다. 70% 지점을 넘는 순간 잠자던 불꽃이 폭발해 2.5배 가속으로 모두를 제칩니다.',
     trait: '후반 폭발형',
     color: '#FF4444',
     glColor: [1.0, 0.27, 0.27],
@@ -18,14 +18,14 @@ export const HORSE_TYPES = [
       id: 'final_burst',
       icon: '🔥',
       name: '막판 스퍼트',
-      description: '전체 거리 60% 이후 26% 확률로 짧은 시간 동안 1.5배 가속',
+      description: '위치 70% 이상 도달 시 확정 발동. 2.5배 가속',
       cooldown: 3,
       trigger(horse, game) {
         if (horse.position < game.finishLine * 0.7) return null;
         return {
           type: 'self_buff',
           buff: { kind: 'speed_mult', value: 2.5, roundsLeft: 1, label: '🔥' },
-          message: `${horse.name}, 결승선이 보이자 막판 스퍼트 발동! 2배 가속!`,
+          message: `홍염 역습, 결승선이 보이자 막판 스퍼트 발동! 2.5배 가속!`,
         };
       },
     },
@@ -39,9 +39,9 @@ export const HORSE_TYPES = [
   {
     id: 'front_runner',
     realtimeBalance: 1,
-    name: '선두 돌진마',
+    name: '화무십일홍',
     jockey: '기수 이서연',
-    description: '출발과 동시에 전력질주합니다. 초반에 압도적이지만 체력이 소진되며 후반에는 크게 처집니다.',
+    description: '출발 총성과 동시에 전력 질주합니다. 초반 10초 안에 +80M 순간 돌파로 선두를 선점하지만, 체력 소진으로 후반엔 급격히 처집니다.',
     trait: '선두 질주형',
     color: '#4488FF',
     glColor: [0.27, 0.53, 1.0],
@@ -49,7 +49,7 @@ export const HORSE_TYPES = [
       id: 'opening_strike',
       icon: '⚡',
       name: '기선제압',
-      description: '초반 10초 동안 18% 확률로 +60M 즉시 이동',
+      description: '초반 10초 이내 1초마다 18% 확률로 +80M 즉시 워프, 쿨다운 1초',
       cooldown: 1,
       trigger(horse, game) {
         if (game.round > 10) return null;
@@ -57,7 +57,7 @@ export const HORSE_TYPES = [
         return {
           type: 'self_warp',
           amount: 80,
-          message: `${horse.name}이(가) 기선제압! 출발과 동시에 +60M 점프!`,
+          message: `화무십일홍, 기선제압! 출발과 동시에 +80M 점프!`,
         };
       },
     },
@@ -71,9 +71,9 @@ export const HORSE_TYPES = [
   {
     id: 'steady',
     realtimeBalance: 1,
-    name: '균형의 달인',
+    name: '메트로놈',
     jockey: '기수 박지우',
-    description: '처음부터 끝까지 일정한 페이스를 유지합니다. 화려함은 없지만 꾸준한 성적을 냅니다.',
+    description: '시작부터 끝까지 일정한 박자로 달립니다. 화려함은 없지만 매 5초마다 정확히 1.6배 가속이 확정 발동됩니다.',
     trait: '균형 유지형',
     color: '#33CC55',
     glColor: [0.2, 0.8, 0.33],
@@ -81,14 +81,14 @@ export const HORSE_TYPES = [
       id: 'pace_master',
       icon: '🛡️',
       name: '페이스 마스터',
-      description: '매 6초마다 짧은 시간 동안 1.5배 가속 (확정 발동)',
+      description: '매 5초마다 1.6배 가속 확정 발동',
       cooldown: 0,
       trigger(horse, game) {
-        if (game.round === 0 || game.round % 6 !== 0) return null;
+        if (game.round === 0 || game.round % 5 !== 0) return null;
         return {
           type: 'self_buff',
-          buff: { kind: 'speed_mult', value: 1.5, roundsLeft: 1, label: '🛡️' },
-          message: `${horse.name}의 정확한 호흡! 페이스 마스터로 1.5배 가속!`,
+          buff: { kind: 'speed_mult', value: 1.6, roundsLeft: 1, label: '🛡️' },
+          message: `메트로놈의 정확한 호흡! 페이스 마스터로 1.6배 가속!`,
         };
       },
     },
@@ -99,9 +99,9 @@ export const HORSE_TYPES = [
   {
     id: 'lucky_star',
     realtimeBalance: 1,
-    name: '럭키 스타',
+    name: '럭키스타',
     jockey: '기수 최하늘',
-    description: '완전히 예측 불가능합니다! 운이 좋으면 선두, 나쁘면 꼴찌. 가장 스릴 넘치는 말입니다.',
+    description: '완전히 예측 불가능합니다. 40% 확률로 동전 던지기 — 앞면이면 +80M 도약, 뒷면이면 -50M 후퇴. 운이 전부인 말.',
     trait: '랜덤 폭발형',
     color: '#FFD700',
     glColor: [1.0, 0.84, 0.0],
@@ -109,7 +109,7 @@ export const HORSE_TYPES = [
       id: 'lucky_coin',
       icon: '💰',
       name: '행운의 동전',
-      description: '40% 확률로 동전 던지기! 성공 시 +85M, 실패 시 -75M',
+      description: '1초마다 40% 확률로 발동. 앞면(60%) +80M, 뒷면(40%) -50M, 쿨다운 1초',
       cooldown: 1,
       trigger(horse) {
         if (Math.random() >= 0.4) return null;
@@ -118,8 +118,8 @@ export const HORSE_TYPES = [
           type: 'self_warp',
           amount: lucky ? 80 : -50,
           message: lucky
-            ? `${horse.name}, 행운의 동전 앞면! 단숨에 +85M 점프!`
-            : `${horse.name}, 동전 뒷면이 나왔다! -75M 후퇴...`,
+            ? `럭키스타, 행운의 동전 앞면! 단숨에 +80M 도약!`
+            : `럭키스타, 동전 뒷면이 나왔다! -50M 후퇴...`,
         };
       },
     },
@@ -133,9 +133,9 @@ export const HORSE_TYPES = [
   {
     id: 'mid_race',
     realtimeBalance: 1.25,
-    name: '중반 강자',
+    name: '중원패왕',
     jockey: '기수 정도현',
-    description: '300M~700M 구간에서 최고의 퍼포먼스를 발휘합니다. 중반 레이스의 제왕입니다.',
+    description: '250M~750M 구간에서 최고 폼을 발휘합니다. 방해 공작으로 가장 가까운 라이벌을 -80M 끌어당겨 중반 지배권을 장악합니다.',
     trait: '중반 특화형',
     color: '#AA44FF',
     glColor: [0.67, 0.27, 1.0],
@@ -143,18 +143,18 @@ export const HORSE_TYPES = [
       id: 'mud_attack',
       icon: '💥',
       name: '진흙탕 작전',
-      description: '25~75% 구간에서 20% 확률로 가장 가까운 라이벌 -80M',
-      cooldown: 2,
+      description: '25~75% 구간에서 1초마다 30% 확률로 최근접 라이벌 -80M 끌어당김, 쿨다운 2초',
+      cooldown: 1,
       trigger(horse, game) {
         if (horse.position < game.finishLine * 0.25 || horse.position > game.finishLine * 0.75) return null;
-        if (Math.random() >= 0.2) return null;
+        if (Math.random() >= 0.3) return null;
         const target = game.findNearestRival(horse);
         if (!target) return null;
         return {
           type: 'target_pullback',
           targetId: target.laneIndex,
           amount: 80,
-          message: `${horse.name}의 진흙탕 작전! ${target.name}이(가) 페이스를 잃고 -80M 후퇴!`,
+          message: `중원패왕의 진흙탕 작전! ${target.name}이(가) 페이스를 잃고 -80M 후퇴!`,
         };
       },
     },
@@ -167,9 +167,9 @@ export const HORSE_TYPES = [
   {
     id: 'stamina',
     realtimeBalance: 1,
-    name: '지구력 전사',
+    name: '불굴의 철마',
     jockey: '기수 윤승호',
-    description: '끊임없이 체력을 비축합니다. 라운드가 거듭될수록 점점 빨라지며 마지막에 진가를 발휘합니다.',
+    description: '초반은 느리지만 달릴수록 강해집니다. 매 7초마다 +180M 폭발 점프로 단숨에 판세를 뒤집습니다.',
     trait: '점진 가속형',
     color: '#FF8822',
     glColor: [1.0, 0.53, 0.13],
@@ -177,14 +177,14 @@ export const HORSE_TYPES = [
       id: 'second_wind',
       icon: '🔋',
       name: '2단 가속',
-      description: '매 8초마다 +180M 즉시 이동 (확정 발동)',
+      description: '매 7초마다 +180M 즉시 워프 확정 발동',
       cooldown: 0,
       trigger(horse, game) {
         if (game.round === 0 || game.round % 7 !== 0) return null;
         return {
           type: 'self_warp',
           amount: 180,
-          message: `${horse.name}의 비축한 체력 폭발! 2단 가속으로 +180M!`,
+          message: `불굴의 철마, 비축한 체력 폭발! 2단 가속으로 +180M!`,
         };
       },
     },
@@ -196,9 +196,9 @@ export const HORSE_TYPES = [
   {
     id: 'sprinter',
     realtimeBalance: 1,
-    name: '번개 질주',
+    name: '번개질주',
     jockey: '기수 강민아',
-    description: '확률적으로 강하게 폭발합니다. 하지만 나머지 시간엔 느립니다. 고위험 고수익 전략의 말.',
+    description: '평소엔 느리지만 순간 폭발력이 무섭습니다. 쿨다운마다 20% 확률로 +100M 순간 워프, 28% 확률로 고속 구간 돌입.',
     trait: '순간 폭발형',
     color: '#00DDFF',
     glColor: [0.0, 0.87, 1.0],
@@ -206,14 +206,14 @@ export const HORSE_TYPES = [
       id: 'lightning_warp',
       icon: '⚡',
       name: '광속 워프',
-      description: '스킬 체크 시 16% 확률로 +100M 순간 워프',
+      description: '쿨다운 4초마다 20% 확률로 +100M 순간 워프',
       cooldown: 4,
       trigger(horse) {
         if (Math.random() >= 0.20) return null;
         return {
           type: 'self_warp',
           amount: 100,
-          message: `${horse.name}의 광속 워프! 눈 깜짝할 사이 +100M!`,
+          message: `번개질주, 광속 워프! 눈 깜짝할 사이 +100M!`,
         };
       },
     },
@@ -225,9 +225,9 @@ export const HORSE_TYPES = [
   {
     id: 'tactician',
     realtimeBalance: 1.15,
-    name: '전략의 귀재',
+    name: '역전의 귀재',
     jockey: '기수 신예린',
-    description: '선두와의 거리를 파악하고 전략적으로 페이스를 조절합니다. 뒤처질수록 더욱 강해집니다.',
+    description: '4위 이하로 뒤처지면 추격 본능이 불타오릅니다. 20% 확률로 +100M 워프, 선두와 거리가 멀수록 기본 속도도 빨라집니다.',
     trait: '전략적 적응형',
     color: '#FF66CC',
     glColor: [1.0, 0.4, 0.8],
@@ -235,7 +235,7 @@ export const HORSE_TYPES = [
       id: 'comeback',
       icon: '🏹',
       name: '추격 본능',
-      description: '4등 이하일 때 20% 확률로 +70M 즉시 이동',
+      description: '4등 이하일 때 20% 확률로 +100M 즉시 워프, 쿨다운 2초',
       cooldown: 2,
       trigger(horse, game) {
         const sorted = game.sortedByPosition;
@@ -245,7 +245,7 @@ export const HORSE_TYPES = [
         return {
           type: 'self_warp',
           amount: 100,
-          message: `${horse.name}의 추격 본능 발동! 폭발적으로 +100M 따라잡습니다!`,
+          message: `역전의 귀재, 추격 본능 발동! 폭발적으로 +100M 따라잡습니다!`,
         };
       },
     },
@@ -260,14 +260,14 @@ export const HORSE_TYPES = [
 // 100,000회 시뮬레이션 기반 사전 측정 배당 (8마리 모두 출전 기준, margin 0.85)
 // 측정 확률은 주석에 함께 기록 (변경 시 scripts/simulate-odds.mjs 재실행)
 export const BASE_ODDS = {
-  late_surge:   { win: 5.3,  place: 1.2 }, // win 15.98% / place 69.27%
-  front_runner: { win: 6.1,  place: 3.9 }, // win 13.91% / place 22.02%
-  steady:       { win: 26.8, place: 3.9 }, // win  3.18% / place 22.00%
-  lucky_star:   { win: 4.9,  place: 3.4 }, // win 17.47% / place 25.27%
-  mid_race:     { win: 19.5, place: 1.9 }, // win  4.37% / place 44.51%
-  stamina:      { win: 7.9,  place: 2.0 }, // win 10.78% / place 42.65%
-  sprinter:     { win: 5.3,  place: 2.9 }, // win 16.08% / place 29.82%
-  tactician:    { win: 4.7,  place: 1.9 }, // win 18.25% / place 44.46%
+  late_surge:   { win: 5.7,  place: 1.3 }, // win 14.80% / place 67.64%
+  front_runner: { win: 5.8,  place: 3.8 }, // win 14.65% / place 22.25%
+  steady:       { win: 13.8, place: 2.6 }, // win  6.17% / place 32.56%
+  lucky_star:   { win: 5.2,  place: 3.7 }, // win 16.35% / place 23.15%
+  mid_race:     { win: 13.4, place: 1.8 }, // win  6.36% / place 47.71%
+  stamina:      { win: 7.4,  place: 2.0 }, // win 11.45% / place 41.71%
+  sprinter:     { win: 6.3,  place: 3.5 }, // win 13.42% / place 24.52%
+  tactician:    { win: 5.1,  place: 2.1 }, // win 16.79% / place 40.47%
 };
 
 export function calculateSpeed(horseType, position, leadPosition, buffs = []) {
