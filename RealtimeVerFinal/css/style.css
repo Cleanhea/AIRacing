@@ -48,6 +48,32 @@ body {
   min-height: 100vh;
 }
 
+/* ── 카운트다운 오버레이 ── */
+.countdown-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.countdown-overlay[hidden] { display: none; }
+.countdown-number {
+  font-size: 12rem;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow: 0 0 40px #ffd70099, 0 4px 24px #000a;
+  line-height: 1;
+  animation: countdown-pop 0.25s ease-out;
+  user-select: none;
+}
+@keyframes countdown-pop {
+  from { transform: scale(1.6); opacity: 0.3; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
 .screen { display: none; }
 .screen.active { display: flex; flex-direction: column; min-height: 100vh; }
 
@@ -335,6 +361,7 @@ h1.title {
   flex-direction: row;
   height: 100vh;
   overflow: hidden;
+  position: relative;
 }
 
 .canvas-wrap {

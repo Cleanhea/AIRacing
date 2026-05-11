@@ -33,6 +33,9 @@ export class Tournament {
     this.currentRound++;
 
     if (this.mode === MODE_BET) {
+      // 매 라운드 시작 시 500원 지급 (파산 방지)
+      for (const t of this.teams) t.balance += 500;
+
       // 자동 배당 (시뮬레이션 결과). 없으면 안전한 폴백.
       const odds = {};
       for (const h of horseList) {

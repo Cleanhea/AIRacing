@@ -512,7 +512,42 @@ function startRaceFromPrep() {
 }
 
 // ── Race Screen ──────────────────────────────────────────────────
-function startRace() {
+function playRaceSound(src) {
+  const bgm = document.getElementById('bgm');
+  const audio = new Audio(src);
+  audio.volume = bgm?.muted ? 0 : (bgm?.volume ?? 0.4);
+  audio.play().catch(() => {});
+}
+
+function runCountdown() {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('countdown-overlay');
+    const numEl = document.getElementById('countdown-number');
+    overlay.hidden = false;
+
+    let count = 3;
+    const tick = () => {
+      numEl.textContent = String(count);
+      numEl.style.animation = 'none';
+      void numEl.offsetWidth; // reflow로 animation 재시작
+      numEl.style.animation = '';
+      playRaceSound('bgm/RaceCount.wav');
+      count--;
+      if (count > 0) {
+        setTimeout(tick, 1000);
+      } else {
+        setTimeout(() => {
+          overlay.hidden = true;
+          playRaceSound('bgm/StartGun.wav');
+          resolve();
+        }, 1000);
+      }
+    };
+    setTimeout(tick, 1000); // 화면 로드 안정화 대기
+  });
+}
+
+async function startRace() {
   game = new GameState(selectedHorseIndices, jockeyNames);
 
   showScreen('race-screen');
@@ -528,11 +563,11 @@ function startRace() {
   document.getElementById('round-display').textContent = formatRaceTime(game.elapsedTime);
   document.getElementById('commentary').textContent = '경기 시작을 기다리는 중...';
   const nextBtn = document.getElementById('next-round-btn');
-  nextBtn.disabled = false;
+  nextBtn.disabled = true;
   nextBtn.textContent = '일시정지';
   const autoLabel = document.querySelector('.auto-label');
   if (autoLabel) autoLabel.style.display = 'none';
-  isPaused = false;
+  isPaused = true;
   resultQueued = false;
   commentaryTimer = 0;
   commentaryBusy = false;
@@ -540,6 +575,11 @@ function startRace() {
 
   lastTime = performance.now();
   rafId = requestAnimationFrame(renderLoop);
+
+  await runCountdown();
+
+  isPaused = false;
+  nextBtn.disabled = false;
 }
 
 function formatRaceTime(seconds = 0) {
